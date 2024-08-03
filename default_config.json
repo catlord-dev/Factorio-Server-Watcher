@@ -1,0 +1,25 @@
+{
+  "botToken_comment": "Your discord bot token",
+  "botToken": "",
+
+  "watchInterval_comment": "Time between checking servers in seconds, should be kept high to reduce load on the api",
+  "watchInterval": 60,
+
+  "channelId_comment": "The discord channel id to send alerts to",
+  "channelId": 0,
+
+  "serverId_comment": "The discord server id that the bot is in",
+  "serverId": 0,
+
+  "factorioToken_comment": "Your factorio token, this is used as authorization for the factorio api",
+  "factorioToken": "",
+
+  "factorioUsername_comment": "Your factorio username, this is used as authorization for the factorio api",
+  "factorioUsername": "",
+
+  "tags_comment": "The tags that servers must have to be sent alerts, MUST be a list",
+  "tags": ["hivemind"],
+
+  "closeAlert_comment": "How should the bot handle messages when the server closes? delete, edit, nothing, closeAlert (default: delete)",
+  "closeAlert": "delete"
+}
