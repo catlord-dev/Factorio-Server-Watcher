@@ -51,7 +51,54 @@ async def main(bot: Client):
             alert = server["alert"]
             await closeAlert(bot, alert, server)
         time.sleep(2)
+        
+def checkTag(filterTag:str,serverTags:list):
+    """
+    Returns True if the tag is in the serverTags, False if it is not.
+    If the filterTag starts with !, it will negate and return the opposite of the result. 
+    
+    Args:
+        filterTag (str): The filter tag to evaluate.
+        serverTags (list): The list of tags associated with the server.
+        
+    Returns:
+        bool: True if the server should be included, False if it should be excluded.
+    """
+    negate = False
+    if filterTag[0] == "!":
+        filterTag = filterTag[1:]
+        negate = True
+    if filterTag in serverTags:
+        if negate:
+            return False
+        else:
+            return True
+    else:
+        if negate:
+            return True
+        else:
+            return False
 
+def checkFilter(bot: Client,filters:list,serverTags:list):
+    """
+    Checks if any of the filters are met by the serverTags.
+    Does OR logic between elements, any lists will have their elements use AND logic
+    add ! before a tag to negate it and add NOT logic to it
+
+    Args:
+        bot (Client): The bot instance.
+        filters (list): List of filters to check.
+        serverTags (list): The tags of the server to check.
+
+    Returns:
+        bool: True if any of the filters are met, False otherwise.
+    """
+    for filter in filters:
+        if type(filter) == list:
+            if all(checkTag(tag,serverTags) for tag in filter):
+                return True
+        elif type(filter) == str:
+            return checkTag(filter,serverTags)
 
 async def filterServers(bot: Client, servers: list[dict]):
     print("filtering servers")
@@ -62,7 +109,7 @@ async def filterServers(bot: Client, servers: list[dict]):
     for gameId in bot.watchedServers.keys():
         bot.watchedServers[gameId]["watchKeepAlive"] = False
     for server in servers:
-        if any(tag in server.get("tags", []) for tag in tags):
+        if checkFilter(bot, tags, server["tags"]):
             if server["game_id"] in bot.watchedServers:
                 bot.watchedServers[server["game_id"]]["watchKeepAlive"] = True
                 continue
