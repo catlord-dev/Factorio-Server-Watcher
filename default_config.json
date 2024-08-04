@@ -20,6 +20,15 @@
   "tags_comment": "The tags that servers must have to be sent alerts, MUST be a list",
   "tags": ["hivemind"],
 
+  "serverNameCheckList_comment": "Words that servers name must have to be sent alerts, MUST be a list, can be empty, Will not limit alerts caught by tags",
+  "serverNameCheckList": ["hivemind"],
+
   "closeAlert_comment": "How should the bot handle messages when the server closes? delete, edit, nothing, closeAlert (default: delete)",
-  "closeAlert": "delete"
+  "closeAlert": "delete",
+
+  "botCloseAlert_comment": "How should the bot handle messages when the bot shuts down? delete, edit, nothing, closeAlert (default: delete)",
+  "botCloseAlert": "delete",
+
+  "embed_comment": "Should the bot use embeds for messages? (default: true)",
+  "embed": true
 }

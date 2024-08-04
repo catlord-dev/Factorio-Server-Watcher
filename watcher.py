@@ -2,7 +2,8 @@ import asyncio
 import json
 import time
 from FactorioAPI.API.Internal.matchmaking import getGames
-from interactions import Client, Color, Embed, EmbedField, GuildChannel, Message
+from interactions import ActionRow, Button, ButtonStyle, Client, Color, ComponentContext, Embed, EmbedField, GuildChannel, Message, component_callback, listen
+from interactions.api.events import Component
 
 
 async def main(bot: Client):
@@ -34,6 +35,7 @@ async def main(bot: Client):
             )
     config["closeAlert"] = closeAlertType
     print("Watching for servers that have one of these tags: " + str(tags))
+    print("Or has one of these words in it's name " + str(config["serverNameCheckList"]))
     print("Close alert type: " + str(closeAlertType))
     try:
         while True:
@@ -49,18 +51,21 @@ async def main(bot: Client):
         for server in bot.watchedServers.values():
             print("Closing server alert:", server["game_id"])
             alert = server["alert"]
-            await closeAlert(bot, alert, server)
-        time.sleep(2)
-        
-def checkTag(filterTag:str,serverTags:list):
+            await closeAlert(bot, alert, server,botShutdown=True)
+    time.sleep(1)
+    await bot.stop()
+    
+
+
+def checkTag(filterTag: str, serverTags: list):
     """
     Returns True if the tag is in the serverTags, False if it is not.
-    If the filterTag starts with !, it will negate and return the opposite of the result. 
-    
+    If the filterTag starts with !, it will negate and return the opposite of the result.
+
     Args:
         filterTag (str): The filter tag to evaluate.
         serverTags (list): The list of tags associated with the server.
-        
+
     Returns:
         bool: True if the server should be included, False if it should be excluded.
     """
@@ -79,7 +84,8 @@ def checkTag(filterTag:str,serverTags:list):
         else:
             return False
 
-def checkFilter(bot: Client,filters:list,serverTags:list):
+
+def checkFilter(bot: Client, filters: list, serverTags: list):
     """
     Checks if any of the filters are met by the serverTags.
     Does OR logic between elements, any lists will have their elements use AND logic
@@ -95,21 +101,34 @@ def checkFilter(bot: Client,filters:list,serverTags:list):
     """
     for filter in filters:
         if type(filter) == list:
-            if all(checkTag(tag,serverTags) for tag in filter):
+            if all(checkTag(tag, serverTags) for tag in filter):
                 return True
         elif type(filter) == str:
-            return checkTag(filter,serverTags)
+            return checkTag(filter, serverTags)
+
+def lowerIt(stuff: str| list):
+    if type(stuff) == list:
+        for i in range(len(stuff)):
+            stuff[i] = stuff[i].lower()
+    else:
+        stuff = stuff.lower()
+    return stuff
 
 async def filterServers(bot: Client, servers: list[dict]):
     print("filtering servers")
+    
     start = time.time()
     config = bot.config
     tags = config["tags"]
+    serverNames = config["serverNameCheckList"]
     newServersCount = 0
+    
     for gameId in bot.watchedServers.keys():
         bot.watchedServers[gameId]["watchKeepAlive"] = False
+        
+    sentAlerts = []
     for server in servers:
-        if checkFilter(bot, tags, server["tags"]):
+        if checkFilter(bot, tags, server.get("tags", [])) or checkFilter(bot, serverNames, server.get("name", "")):
             if server["game_id"] in bot.watchedServers:
                 bot.watchedServers[server["game_id"]]["watchKeepAlive"] = True
                 continue
@@ -120,16 +139,22 @@ async def filterServers(bot: Client, servers: list[dict]):
             server = bot.watchedServers[gameId]
             print(f"Found server with tag: {server['name']} - {server['tags']}")
             newServersCount += 1
-            await sendAlert(bot, server)
+
+            sentAlerts.append(sendAlert(bot, server))
+
     print(f"Found {newServersCount} servers in {time.time() - start:.5f} seconds")
+    
     closeGamesCnt = 0
     start = time.time()
     for server in bot.watchedServers.values():
         if not server["watchKeepAlive"]:
             print(f"Closing server alert: {server['game_id']}")
             closeGamesCnt += 1
-            await closeAlert(bot, server["alert"], server)
+            sentAlerts.append(closeAlert(bot, server["alert"], server))
     print(f"Closed {closeGamesCnt} servers in {time.time() - start:.5f} seconds")
+    
+    for sentAlert in sentAlerts:
+        await sentAlert
 
 
 async def sendAlert(bot: Client, server: dict):
@@ -139,11 +164,12 @@ async def sendAlert(bot: Client, server: dict):
     if channelId == 0:
         print("No channel id set, not sending alert")
         return
-    if(config["embed"]):
-        alert = await bot.get_channel(channelId).send(embed=createEmbedAlert(server))
+    buttons = [Button(style=ButtonStyle.BLUE,label="Mods",custom_id="mods"), Button(style=ButtonStyle.BLUE,label="Players",custom_id="players")]
+    if config["embed"]:
+        alert = await bot.get_channel(channelId).send(embed=createEmbedAlert(server),components=buttons)
     else:
-        alert = await bot.get_channel(channelId).send(createAlert(server))
-    
+        alert = await bot.get_channel(channelId).send(createAlert(server),components=buttons)
+
     server["alert"] = alert
     print(f"Sent alert in {time.time() - start:.5f} seconds")
 
@@ -172,7 +198,8 @@ Password: {server["has_password"]}
 Playtime: {formatTime(server["game_time_elapsed"])}
 Mods: {server["mod_count"]}
 Players: {len(server.get("players", []))}
-Tags: ``{", ".join(server["tags"])}``""",color=Color.from_hex("#237feb")
+Tags: ``{", ".join(server["tags"])}``""",
+        color=Color.from_hex("#237feb"),
     )
 
 
@@ -188,6 +215,7 @@ Mods: {server["mod_count"]}
 Players: {len(server.get("players", []))}
 Tags: {", ".join(server["tags"])}```"""
 
+
 def createCloseEmbedAlert(server: dict):
     return Embed(
         title="Server Closed",
@@ -199,7 +227,8 @@ Password: {server["has_password"]}
 Playtime: {formatTime(server["game_time_elapsed"])}
 Mods: {server["mod_count"]}
 Players: {len(server.get("players", []))}
-Tags: ``{", ".join(server["tags"])}``""",color=Color.from_hex("#ED4245")
+Tags: ``{", ".join(server["tags"])}``""",
+        color=Color.from_hex("#ED4245"),
     )
 
 
@@ -207,22 +236,34 @@ def formatTime(time: int):
     return f"{time//3600}h {time // 60 % 60}m {time % 60}s"
 
 
-async def closeAlert(bot: Client, alert: Message, server: dict):
+async def closeAlert(bot: Client, alert: Message, server: dict,botShutdown = False):
+    start = time.time()
     config = bot.config
-    match config["closeAlert"]:
+    print(f"Closing alert: {server['game_id']}")
+    alertType = config["closeAlert"]
+    if botShutdown:
+        alertType = config["botCloseAlert"]
+    match alertType:
         case "delete":
-            print("Deleting alert")
-            print(alert.id)
-            print(await alert.delete())
+            await alert.delete()
         case "edit":
             if config["embed"]:
-                await alert.edit(embed=createCloseEmbedAlert(server))
+                await alert.edit(embed=createCloseEmbedAlert(server),components=[])
             else:
-                await alert.edit(content=createCloseAlert(server))
+                await alert.edit(content=createCloseAlert(server),components=[])
         case "closeAlert":
             if config["embed"]:
-                await alert.edit(embed=createCloseEmbedAlert(server))
+                await alert.channel.send(embed=createCloseEmbedAlert(server))
             else:
                 await alert.channel.send(createCloseAlert(server))
         case _:
-            pass
+            print("Invalid close alert type")
+
+    print(f"Closed alert in {time.time() - start:.5f} seconds")
+
+
+@component_callback("mods")
+async def on_component(ctx: ComponentContext):
+    print("Duid a thing.")    
+    print(ctx.custom_id)
+    # ctx.send(ephemeral=True,content="Mod List")

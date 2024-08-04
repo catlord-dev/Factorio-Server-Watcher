@@ -33,4 +33,5 @@ async def on_ready():
 
 bot.delete_unused_application_cmds = True
 bot.load_extension("commands")
+bot.load_extension("components")
 bot.start(config["botToken"])
