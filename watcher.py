@@ -2,8 +2,10 @@ import asyncio
 import json
 import time
 from FactorioAPI.API.Internal.matchmaking import getGames
-from interactions import ActionRow, Button, ButtonStyle, Client, Color, ComponentContext, Embed, EmbedField, GuildChannel, Message, component_callback, listen
-from interactions.api.events import Component
+from interactions import ActionRow, Button, ButtonStyle, Client, Color, ComponentContext, Embed, EmbedField, Extension, GuildChannel, Message, component_callback, listen
+from interactions.api.events import Component,Startup
+
+
 
 
 async def main(bot: Client):

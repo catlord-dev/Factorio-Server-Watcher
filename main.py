@@ -16,7 +16,7 @@ with open("config.json","r") as f:
 
 
 # Create the bot
-bot = Client(intents=Intents.DEFAULT,debug_scope=config["serverId"])
+bot = Client(intents=Intents.ALL,debug_scope=config["serverId"])
 
         
 
@@ -28,7 +28,7 @@ async def on_ready():
     print(f'Logged in as {bot.user.display_name} ({bot.user.id})')
     print('------')
     print(f"Owner ID: {bot.owner}")
-    asyncio.create_task(watcher.main(bot))
+    await watcher.main(bot)
 
 
 bot.delete_unused_application_cmds = True
