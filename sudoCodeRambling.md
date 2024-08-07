@@ -44,9 +44,7 @@ set tag filter
 set name filter
 set description filter
 set mod filter
-set watch interval (because of threat of rate limiting and spamming the api, and i don't want to have to handle storing player factorio tokens
-this will prob be set by who ever hosts the bot , but make sure it is set per server in config with a default value in main config in case hosters want per server control
-)
+set watch interval (we are not doing per server config for this, because it would be pain to manage who knows how many watch loops of different intervals and filtering some servers but not others, and it's like, if your gonna get servers faster on one server, why not all of them, we already got the servers, just filter them)
 find server with filters
 set how alerts from closed servers are handled (delete old msg, edit old msg, send new close alert)
 
@@ -62,3 +60,4 @@ overall managers interacting with factorio/wube servers
 
 # other
 overall , good documentation is very important, both in code and in how to use the bot, some may be made afterwards but documentation while coding will be important
+features will be worked on first, then speed (speed won't be disregarded but it won't be top priority first)
