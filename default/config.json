@@ -1,0 +1,14 @@
+{
+    "botToken_comment": "Your discord bot token",
+    "botToken": "botToken",
+  
+    "watchInterval_comment": "Time between checking servers in seconds, should be kept high to reduce load on the api",
+    "watchInterval": 60,
+  
+    "factorioToken_comment": "Your factorio token, this is used as authorization for the factorio api",
+    "factorioToken": "token",
+  
+    "factorioUsername_comment": "Your factorio username, this is used as authorization for the factorio api",
+    "factorioUsername": "username"
+  }
+  

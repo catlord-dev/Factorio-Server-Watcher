@@ -61,3 +61,4 @@ overall managers interacting with factorio/wube servers
 # other
 overall , good documentation is very important, both in code and in how to use the bot, some may be made afterwards but documentation while coding will be important
 features will be worked on first, then speed (speed won't be disregarded but it won't be top priority first)
+bot will be able to work on multiple servers in case that is wanted

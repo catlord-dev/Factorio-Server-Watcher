@@ -1,0 +1,35 @@
+{
+    "serverId": "",
+    "serverName": "",
+    "adminRole": "",
+    "alert": {
+      "open": "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
+      "close": "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```"
+    },
+    "embed": {
+      "useEmbed": true,
+      "open": {
+        "title": "Server Opened",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "color": "#237feb"
+      },
+      "close": {
+        "title": "Server Closed",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "color": "#ED4245"
+      }
+    },
+    "buttions": {
+      "players": { "enabled": true, "color": 1 },
+      "modlist": { "enabled": true, "color": 1 }
+    },
+
+    "closeAlert": "delete",
+    "filters": {
+      "tags": [],
+      "name": [],
+      "description": [],
+      "mod": []
+    },
+    "channels": []
+  }

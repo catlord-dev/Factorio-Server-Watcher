@@ -1,0 +1,40 @@
+{
+  "comments": {
+    "serverId": "(str) the id of the discord server",
+    "serverName": "(str) the name of the discord server",
+    "adminRole": "(str) the id of the admin role",
+    "alert": {
+      "open": "(str) the msg used when a server is opened",
+      "close": "(str) the msg used when a server is closed (use is dependant on closeAlert setting)"
+    },
+    "embed": {
+      "useEmbed": "(boolean) whether to use embeds or just text",
+      "open": {
+        "title": "(str) title of the embed",
+        "description": "(str) the msg used when a server is opened",
+        "color": "(str) the color of the side bar of the embed in hexidecimal format"
+      },
+      "close": {
+        "title": "(str) title of the embed",
+        "description": "(str) the msg used when a server is closed (use is dependant on closeAlert setting)",
+        "color": "(str) the color of the side bar of the embed in hexidecimal format"
+      }
+    },
+    "buttions": {
+      "players": {
+        "enabled": "(boolean) whether or not to show this button",
+        "color": "(str) the color used based on discords weird standard, there are only 4 colors",
+        "explanation": "sends the user who clicked a message with what players are on the server (is ephemeral so only they can see the msg)"
+      },
+      "modlist": {
+        "enabled": "(boolean) whether or not to show this button",
+        "color": "(str) the color used based on Discord's weird standard, there are only 4 colors",
+        "explanation": "sends the user who clicked a message with what mods the server has (is ephemeral so only they can see the msg)"
+      }
+    },
+
+    "closeAlert": "(str) how should alerts be handled when the server closes, (nothing, edit, delete, closeAlert), check docs for more info",
+    "filters": "(object[tags (list/array), name (list/array), description (list/array), mod (list/array)]) the filters used to figure out if an alert should be sent, there are 4 kinds of filters, tags, name ,description, mod, check docs for more info",
+    "channels": "(list/array) the channels used to send alerts"
+  }
+}

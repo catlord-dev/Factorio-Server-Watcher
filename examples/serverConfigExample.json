@@ -1,0 +1,76 @@
+{
+  "comments": {
+    "serverId": "(str) the id of the discord server",
+    "serverName": "(str) the name of the discord server",
+    "adminRole": "(str) the id of the admin role",
+    "alert": {
+      "open": "(str) the msg used when a server is opened",
+      "close": "(str) the msg used when a server is closed (use is dependant on closeAlert setting)"
+    },
+    "embed": {
+      "useEmbed": "(boolean) whether to use embeds or just text",
+      "open": {
+        "title": "(str) title of the embed",
+        "description": "(str) the msg used when a server is opened",
+        "color": "(str) the color of the side bar of the embed in hexidecimal format"
+      },
+      "close": {
+        "title": "(str) title of the embed",
+        "description": "(str) the msg used when a server is closed (use is dependant on closeAlert setting)",
+        "color": "(str) the color of the side bar of the embed in hexidecimal format"
+      }
+    },
+    "buttions": {
+      "players": {
+        "enabled": "(boolean) whether or not to show this button",
+        "color": "(str) the color used based on discords weird standard, there are only 4 colors",
+        "explanation": "sends the user who clicked a message with what players are on the server (is ephemeral so only they can see the msg)"
+      },
+      "modlist": {
+        "enabled": "(boolean) whether or not to show this button",
+        "color": "(str) the color used based on Discord's weird standard, there are only 4 colors",
+        "explanation": "sends the user who clicked a message with what mods the server has (is ephemeral so only they can see the msg)"
+      }
+    },
+
+    "closeAlert": "(str) how should alerts be handled when the server closes, (nothing, edit, delete, closeAlert), check docs for more info",
+    "filters": "(object[tags (list/array), name (list/array), description (list/array), mod (list/array)]) the filters used to figure out if an alert should be sent, there are 4 kinds of filters, tags, name ,description, mod, check docs for more info",
+    "channels": "(list/array) the channels used to send alerts"
+  },
+
+  "123456789012345678": {
+    "serverId": "123456789012345678",
+    "serverName": "My Server",
+    "adminRole": "123456789012345678",
+    "alert": {
+      "open": "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
+      "close": "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```"
+    },
+    "embed": {
+      "useEmbed": true,
+      "open": {
+        "title": "Server Opened",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "color": "#237feb"
+      },
+      "close": {
+        "title": "Server Closed",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "color": "#ED4245"
+      }
+    },
+    "buttions": {
+      "players": { "enabled": true, "color": 1 },
+      "modlist": { "enabled": true, "color": 1 }
+    },
+
+    "closeAlert": "delete",
+    "filters": {
+      "tags": ["test1", "test2", "test3"],
+      "name": ["test1", "test2", "test3"],
+      "description": ["test1", "test2", "test3"],
+      "mod": ["test1", "test2", "test3"]
+    },
+    "channels": ["123456789012345678", "123456789012345678"]
+  }
+}
