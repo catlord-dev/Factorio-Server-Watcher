@@ -59,7 +59,7 @@
         "color": "#ED4245"
       }
     },
-    "buttions": {
+    "buttons": {
       "players": { "enabled": true, "color": 1 },
       "modlist": { "enabled": true, "color": 1 }
     },

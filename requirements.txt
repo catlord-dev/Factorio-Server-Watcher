@@ -1,2 +1,2 @@
 discord-py-interactions>=5.13.1
-FactorioAPI>=1.1.0
+FactorioAPI>=1.1.2
