@@ -34,7 +34,7 @@
     },
 
     "closeAlert": "(str) how should alerts be handled when the server closes, (nothing, edit, delete, closeAlert), check docs for more info",
-    "filters": "(object[tags (list/array), name (list/array), description (list/array), mod (list/array)]) the filters used to figure out if an alert should be sent, there are 4 kinds of filters, tags, name ,description, mod, check docs for more info",
+    "filters": "(object[tags (list/array), name (list/array), description (list/array)]) the filters used to figure out if an alert should be sent, there are 3 kinds of filters, tags, name ,description, check docs for more info",
     "channels": "(list/array) the channels used to send alerts"
   }
 }

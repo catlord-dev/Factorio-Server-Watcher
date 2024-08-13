@@ -5,22 +5,22 @@ import shutil
 import time
 from interactions import Client, Intents, SlashContext, Snowflake, listen, slash_command
 from interactions.api.events import Startup
-import watcher
-
-if not os.path.exists("config.json"):
-    shutil.copyfile("default_config.json","config.json")
+import newWatcher as watcher
+import configManager
 
 
-with open("config.json","r") as f:
-    config = json.load(f)
+
+
+botConfig , serversConfig = configManager.main()
+
+debug= ""
 
 
 # Create the bot
-bot = Client(intents=Intents.ALL,debug_scope=config["serverId"])
+bot = Client(intents=Intents.ALL,debug_scope=debug)
 
-        
-
-bot.config = config
+bot.config = botConfig
+bot.serversConfig = serversConfig
 
 
 @listen(Startup)
@@ -34,4 +34,4 @@ async def on_ready():
 bot.delete_unused_application_cmds = True
 bot.load_extension("commands")
 bot.load_extension("components")
-bot.start(config["botToken"])
+bot.start(bot.config["botToken"])

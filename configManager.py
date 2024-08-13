@@ -17,10 +17,6 @@ validatePath handles making sure config options exist, further data validation i
 
 """
 
-FactorioAPI.Utils.APPLINK = "https://github.com/catlord-dev/Factorio-Server-Watcher"
-FactorioAPI.Utils.VERSION = "1.0.0"
-FactorioAPI.Utils.APPNAME = "FactorioServerWatcher"
-
 
 def validatePath(
     config: dict, path: str, shouldBeType: type, prefix="", noRecurse=False
@@ -81,7 +77,7 @@ def validateServerConfig(config, name):
     Args:
         config (dict): the config for a single server
     """
-    # serverId:str, serverName:str, adminRole:str , alert.open:str, alert.close:str, embed.useEmbed:bool, embed.open.title:str, embed.open.description:str, embed.open.color:str, embed.close.title:str, embed.close.description:str, embed.close.color:str, buttons.players.enabled:boolean , buttons.players.color:int, buttons.modlist.enabled:boolean, buttons.modlist.color:int, closeAlert:str, filters.tags:list , filters.name:list, filters.description:list, filters.mod:list, channels:list
+    # serverId:str, serverName:str, adminRole:str , alert.open:str, alert.close:str, embed.useEmbed:bool, embed.open.title:str, embed.open.description:str, embed.open.color:str, embed.close.title:str, embed.close.description:str, embed.close.color:str, buttons.players.enabled:boolean , buttons.players.color:int, buttons.modlist.enabled:boolean, buttons.modlist.color:int, closeAlert:str, filters.tags:list , filters.name:list, filters.description:list, channels:list
 
     prefix = f"[Server {name} Config] "
 
@@ -125,8 +121,6 @@ def validateServerConfig(config, name):
 
     validatePath(config, "filters.description", list, prefix=prefix)
 
-    validatePath(config, "filters.mod", list, prefix=prefix)
-
     validatePath(config, "channels", list, prefix=prefix)
 
     # now for data validation
@@ -154,19 +148,23 @@ def validateServerConfig(config, name):
     for channel in config["channels"]:
         if not isinstance(channel, str):
             raise Exception(f"{prefix}channels must be a list of strings")
-    
-    for filterType in ["tags", "name", "description", "mod"]:
-        validateFilter(config["filters"][filterType],prefix,filterType)
+
+    for filterType in ["tags", "name", "description"]:
+        validateFilter(config["filters"][filterType], prefix, filterType)
 
 
-def validateFilter(filter: list,prefix,typ) -> None:
+def validateFilter(filter: list, prefix, typ) -> None:
     for lay1 in filter:
         if isinstance(lay1, list):
             for lay2 in lay1:
                 if not isinstance(lay2, str):
-                    raise Exception(f"{prefix}{typ} filter list must be a list of strings")
+                    raise Exception(
+                        f"{prefix}{typ} filter list must be a list of strings"
+                    )
         elif not isinstance(lay1, str):
-            raise Exception(f"{prefix}{typ} filters must be a list of strings or a string")
+            raise Exception(
+                f"{prefix}{typ} filters must be a list of strings or a string"
+            )
 
 
 def validateServersConfig(config: dict):
@@ -176,23 +174,55 @@ def validateServersConfig(config: dict):
         validateServerConfig(config[serverId], serverId)
 
 
-botConfig = {}
-serversConfig = {}
-tempConfig = {}
-botConfigPath = "./config.json"
-serversConfigPath = "./data/servers.json"
+def processServerConfig(config: dict, serverId: str):
+    filters = ["tags", "name", "description"]
+    for filter in filters:
+        config[serverId]["filters"][filter] = set(
+            [
+                tuple(x) if isinstance(x, list) else x
+                for x in config[serverId]["filters"][filter]
+            ]
+        )
 
-if not os.path.exists(botConfigPath):
-    shutil.copyfile("./default/config.json", botConfigPath)
 
-if not os.path.exists(serversConfigPath):
-    shutil.copyfile("./default/servers.json", serversConfigPath)
+def processServersConfig(config: dict):
+    for serverId in config.keys():
+        if serverId == "comments":
+            continue
+        processServerConfig(config[serverId], serverId)
 
-with open(botConfigPath, "rb") as f:
-    botConfig = orjson.loads(f.read())
 
-with open(serversConfigPath, "rb") as f:
-    serversConfig = orjson.loads(f.read())
+def main():
 
-validateBotConfig(botConfig)
-validateServersConfig(serversConfig)
+    FactorioAPI.Utils.APPLINK = "https://github.com/catlord-dev/Factorio-Server-Watcher"
+    FactorioAPI.Utils.VERSION = "1.0.0"
+    FactorioAPI.Utils.APPNAME = "FactorioServerWatcher"
+
+    botConfig = {}
+    serversConfig = {}
+    tempConfig = {}
+    botConfigPath = "./config.json"
+    serversConfigPath = "./data/servers.json"
+
+    if not os.path.exists(botConfigPath):
+        shutil.copyfile("./default/config.json", botConfigPath)
+
+    if not os.path.exists(serversConfigPath):
+        shutil.copyfile("./default/servers.json", serversConfigPath)
+
+    with open(botConfigPath, "rb") as f:
+        botConfig = orjson.loads(f.read())
+
+    with open(serversConfigPath, "rb") as f:
+        serversConfig = orjson.loads(f.read())
+
+    validateBotConfig(botConfig)
+    validateServersConfig(serversConfig)
+
+    processServersConfig(serversConfig)
+
+    return botConfig, serversConfig
+
+
+if __name__ == "__main__":
+    main()

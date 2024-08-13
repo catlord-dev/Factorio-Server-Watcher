@@ -34,7 +34,7 @@
     },
 
     "closeAlert": "(str) how should alerts be handled when the server closes, (nothing, edit, delete, closeAlert), check docs for more info",
-    "filters": "(object[tags (list/array), name (list/array), description (list/array), mod (list/array)]) the filters used to figure out if an alert should be sent, there are 4 kinds of filters, tags, name ,description, mod, check docs for more info",
+    "filters": "(object[tags (list/array), name (list/array), description (list/array)]) the filters used to figure out if an alert should be sent, there are 3 kinds of filters, tags, name ,description, check docs for more info",
     "channels": "(list/array) the channels used to send alerts"
   },
 
@@ -43,19 +43,19 @@
     "serverName": "My Server",
     "adminRole": "123456789012345678",
     "alert": {
-      "open": "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
-      "close": "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```"
+      "open": "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
+      "close": "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```"
     },
     "embed": {
       "useEmbed": true,
       "open": {
         "title": "Server Opened",
-        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
         "color": "#237feb"
       },
       "close": {
         "title": "Server Closed",
-        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {pass}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
         "color": "#ED4245"
       }
     },
@@ -68,9 +68,42 @@
     "filters": {
       "tags": ["test1", "test2", "test3"],
       "name": ["test1", "test2", "test3"],
-      "description": ["test1", "test2", "test3"],
-      "mod": ["test1", "test2", "test3"]
+      "description": ["test1", "test2", "test3"]
     },
     "channels": ["123456789012345678", "123456789012345678"]
+  },
+  "123456789123123": {
+    "serverId": "123456789123123",
+    "serverName": "My Server 2",
+    "adminRole": "12345123345678",
+    "alert": {
+      "open": "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
+      "close": "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```"
+    },
+    "embed": {
+      "useEmbed": true,
+      "open": {
+        "title": "Server Opened",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "color": "#237feb"
+      },
+      "close": {
+        "title": "Server Closed",
+        "description": "Game ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}",
+        "color": "#ED4245"
+      }
+    },
+    "buttons": {
+      "players": { "enabled": true, "color": 1 },
+      "modlist": { "enabled": true, "color": 1 }
+    },
+
+    "closeAlert": "delete",
+    "filters": {
+      "tags": ["test1", "!wolf", "test3"],
+      "name": ["test1", "test32", "!wolf"],
+      "description": ["test1", "test12", "test3"]
+    },
+    "channels": ["1234567890123345678", "123489012345678"]
   }
 }
