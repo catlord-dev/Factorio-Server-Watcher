@@ -1,3 +1,4 @@
+from io import BytesIO
 import FactorioAPI.Utils
 import orjson
 import os
@@ -16,6 +17,10 @@ validatePath handles making sure config options exist, further data validation i
 
 
 """
+
+botConfigHandle: BytesIO = None
+serversConfigHandle: BytesIO = None
+perServerConfig: dict = None
 
 
 def validatePath(
@@ -97,13 +102,13 @@ def validateServerConfig(config, name):
 
     validatePath(config, "embed.open.description", str, prefix=prefix)
 
-    validatePath(config, "embed.open.color", int, prefix=prefix)
+    validatePath(config, "embed.open.color", str, prefix=prefix)
 
     validatePath(config, "embed.close.title", str, prefix=prefix)
 
     validatePath(config, "embed.close.description", str, prefix=prefix)
 
-    validatePath(config, "embed.close.color", int, prefix=prefix)
+    validatePath(config, "embed.close.color", str, prefix=prefix)
 
     validatePath(config, "buttons.players.enabled", bool, prefix=prefix)
 
@@ -189,11 +194,11 @@ def processServersConfig(config: dict):
     for serverId in config.keys():
         if serverId == "comments":
             continue
-        processServerConfig(config[serverId], serverId)
+        processServerConfig(config, serverId)
 
 
 def main():
-
+    global botConfigHandle, serversConfigHandle, perServerConfig
     FactorioAPI.Utils.APPLINK = "https://github.com/catlord-dev/Factorio-Server-Watcher"
     FactorioAPI.Utils.VERSION = "1.0.0"
     FactorioAPI.Utils.APPNAME = "FactorioServerWatcher"
@@ -203,6 +208,7 @@ def main():
     tempConfig = {}
     botConfigPath = "./config.json"
     serversConfigPath = "./data/servers.json"
+    perServerConfigPath = "./default/perServer.json"
 
     if not os.path.exists(botConfigPath):
         shutil.copyfile("./default/config.json", botConfigPath)
@@ -221,7 +227,22 @@ def main():
 
     processServersConfig(serversConfig)
 
+    botConfigHandle = open(botConfigPath, "ab")
+    serversConfigHandle = open(serversConfigPath, "ab")
+    perServerConfig = orjson.loads(open(perServerConfigPath, "rb").read())
+
     return botConfig, serversConfig
+
+
+def addServer(serversConfig: dict, serverId: str, serverName: str):
+    global serversConfigHandle, perServerConfig
+    serversConfig[serverId] = perServerConfig.copy()
+    serversConfig[serverId]["serverId"] = serverId
+    serversConfig[serverId]["serverName"] = serverName
+    serversConfigHandle.seek(0)
+    serversConfigHandle.truncate(0)
+    serversConfigHandle.write(orjson.dumps(serversConfig,option=orjson.OPT_INDENT_2))
+    serversConfigHandle.flush()
 
 
 if __name__ == "__main__":

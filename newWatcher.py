@@ -134,6 +134,7 @@ def makeLookup(serversConfig: dict):
 
 
 async def filterGames(bot: Client, games: list):
+    # print(time.time())
     global lastCheckedID, lowestID
     serversConfig: dict = bot.serversConfig
     watchedServers: dict = bot.watchedServers
@@ -170,16 +171,16 @@ async def filterGames(bot: Client, games: list):
     if lastCheckedID not in keys:
         keys.append(lastCheckedID)
         keys.sort()
-
+    # print(filters)
     # check current servers against watched servers, close servers that are not in the list
     closedGames = []
 
     for gameID in watchedServers.copy():
         if gameID not in keys:
-            closedGames.append(closeServer(bot, gameID))
-            watchedServers.pop(gameID)
+            closedGames.append(closeServer(bot, gameID, watchedServers))
 
     await asyncio.gather(*closedGames)
+    print(f"Closed {len(closedGames)} servers")
 
     openedGames = []
 
@@ -196,7 +197,7 @@ async def filterGames(bot: Client, games: list):
             openedGames.append(openServer(bot, server, filtersHit))
 
     await asyncio.gather(*openedGames)
-
+    print(f"Opened {len(openedGames)} servers")
 
 def formatTime(time: int):
     hours = time // 60
@@ -223,16 +224,18 @@ def formatMessage(msg: str, server: dict):
     return msg
 
 
-async def closeServer(bot: Client, gameID: int):
+async def closeServer(bot: Client, gameID: int, watchedServers: dict):
     print(
         formatMessage(
             "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
-            bot.watchedServers[gameID],
+            watchedServers[gameID],
         )
     )
+    watchedServers.pop(gameID)
 
 
-def openServer(server: int, filters: dict):
+async def openServer(bot: Client, server: int, filters: dict):
+    # print(time.time())
     print(
         formatMessage(
             "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
@@ -247,11 +250,12 @@ def filterString(string: str, filters: set | tuple):
         if the filter is in the string, then it saves the filter
 
     if the filter starts with ! then it negates the filter and does the opposite, where if the filter isn't in the string, then it saves the filter
-    
+
     Args:
         string (str): the string to put filters against
         filters (dict): the filters to test against the string, should be a set or tuple, other iterables may work but better to use set and tuple
     """
+    # print(f"{string} - {filters}")
     hitFilters = set()
     # go through all filters
     for filter in filters:
@@ -267,8 +271,9 @@ def filterString(string: str, filters: set | tuple):
         if string[0:1] == "!":
             negate = True
             string = string[1:]
-        if filter in string:
+        if filter in string or filter == string:
             if negate == False:
+                # print("TRUE")
                 hitFilters.add(filter)
         elif negate == True:
             hitFilters.add(filter)
@@ -285,7 +290,8 @@ def checkFilters(server: dict, filters: dict):
             continue
         if filterType == "tags":
             for tag in server["tags"]:
-                hitFilters["tags"].union(filterString(tag, filters[filterType]))
+                hitfilts = filterString(tag, filters[filterType])
+                hitFilters["tags"].update(hitfilts)
         else:
             hitFilters[filterType] = filterString(
                 server[filterType], filters[filterType]

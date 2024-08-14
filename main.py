@@ -17,7 +17,7 @@ debug= ""
 
 
 # Create the bot
-bot = Client(intents=Intents.ALL,debug_scope=debug)
+bot = Client(intents=Intents.new(messages=True,message_content=True,guild_messages=True,guilds=True,guild_members=True))
 
 bot.config = botConfig
 bot.serversConfig = serversConfig
@@ -34,4 +34,5 @@ async def on_ready():
 bot.delete_unused_application_cmds = True
 bot.load_extension("commands")
 bot.load_extension("components")
+bot.load_extension("events")
 bot.start(bot.config["botToken"])
