@@ -7,7 +7,7 @@ import orjson
 import random
 from numba import njit
 import numpy as np
-
+from collections import Counter
 # import profile
 letters = [
     "a",
@@ -83,18 +83,15 @@ def getFilters(serversConfig: dict, filterType: str):
         "name": set(),
         "description": set(),
     }
-    filterLookup = {"tags": {}, "name": {}, "description": {}, "changed": False}
-    for s,config in serversConfig.items():
-        if s == "comments":
-            continue
-        filters2 = config["filters"]
-        for tag in ["tags", "name", "description"]:
-            filters[tag].update(filters2[tag])
-            for fil in filters2[tag]:
-                if fil in filterLookup[tag]:
-                    filterLookup[tag][fil].append(s)
-                else:
-                    filterLookup[tag][fil] = [s]
+    filters = {"tags": {}, "name": {}, "description": {}, "changed": False}
+    
+    for tag in ["tags", "name", "description"]:
+        filters[tag] = Counter()
+        for s in serversConfig:
+            if s == "comments":
+                continue
+            filter: list = serversConfig[s]["filters"][tag]
+            filters[tag].update(filter)
     return filters
 
 def getFilters2(serversConfig: dict, filterType: str):
@@ -103,20 +100,16 @@ def getFilters2(serversConfig: dict, filterType: str):
         "name": set(),
         "description": set(),
     }
-    filterLookup = {"tags": {}, "name": {}, "description": {}}
+    filters = {"tags": {}, "name": {}, "description": {}, "changed": False}
+    
     for tag in ["tags", "name", "description"]:
-        filters[tag] = set()
+        filters[tag] = Counter()
         for s in serversConfig:
             if s == "comments":
                 continue
             filter: list = serversConfig[s]["filters"][tag]
             filters[tag].update(filter)
-            for fil in filter:
-                filt:set  = filterLookup[tag].get(fil,set())
-                # print(s)
-                filt.add(s)
-                if len(filt) == 1:
-                    filterLookup[tag][fil] = filt
+    return filters
     return filters
 
 
@@ -139,5 +132,9 @@ print(f"{1/timit:.2f} runs/s")
 # print(f"{1/average_time:.2f} runs/s")
 
 #normal
-#KP : 
-# timeit
+#KP     : .0010964
+# timeit: .0002934
+
+#Counter
+#KP     : .0060578
+# timeit: .0014310
