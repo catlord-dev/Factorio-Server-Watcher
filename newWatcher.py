@@ -167,12 +167,14 @@ async def filterGames(bot: Client, games: list):
     # get the lowest and highest game_id
     curMin = games[0]["game_id"]
     curMax = games[-1]["game_id"]
-
+    
+    
     # if lowest stored id is greater than the current lowest id, update the lowest id because in theory, it's an incrementing value and this should be impossible, this catches that
     if lowestID > curMin:
         lowestID = curMin
         lastCheckedID = 0
-
+    lowestID = min(curMin, lowestID)
+    
     # make a dict of the current servers with the game_id as the key
     gamesByID = {game["game_id"]: game for game in games}
     tim = timeIt("Id lookup Done",tim)
@@ -213,7 +215,9 @@ async def filterGames(bot: Client, games: list):
         for filter in filters[typ]:
             filterMem+= sys.getsizeof(filter)
             filterCnt+=1
-        
+    print(keys.index(lastCheckedID))
+    print(len(keys[keys.index(lastCheckedID) :]))
+    print(lastCheckedID)
     for gameID in keys[keys.index(lastCheckedID) :]:
         server = gamesByID.get(gameID, None)
         if server is None:
@@ -221,14 +225,14 @@ async def filterGames(bot: Client, games: list):
         if gameID in watchedServers:
             continue
         filterStart = time.time()
-        # for typ in ["tags", "name", "description"]:
-        #     if typ == "tags":
-        #         for tag in server.get("tags",[]):
-        #             stringMem+= sys.getsizeof(tag)
-        #             stringCnt+=1
-        #     else:
-        #         stringMem+= sys.getsizeof(server[typ])
-        #         stringCnt+=1
+        for typ in ["tags", "name", "description"]:
+            if typ == "tags":
+                for tag in server.get("tags",[]):
+                    stringMem+= sys.getsizeof(tag)
+                    stringCnt+=1
+            else:
+                stringMem+= sys.getsizeof(server[typ])
+                stringCnt+=1
         
         filtersHit = checkFilters(server, filters)
         filterTime+= time.time() - filterStart
@@ -242,11 +246,12 @@ async def filterGames(bot: Client, games: list):
     awaitedTime += time.time() - tim
     tim = time.time()
     print(f"Opened {len(openedGames)} servers")
-    # print(f"There are {stringCnt} strings from servers that take up {stringMem} bytes")
-    # print(f"There are {filterCnt} filters that take up {filterMem} bytes")
+    print(f"There are {stringCnt} strings from servers that take up {stringMem} bytes")
+    print(f"There are {filterCnt} filters that take up {filterMem} bytes")
+    print(f"This would take up {(stringCnt*filterMem+stringMem)/1000:.2f} kilobytes on cache")
     tim = timeIt("Total",start+awaitedTime)
     timeIt("Awaited Time",tim+awaitedTime)
-    
+    lastCheckedID = curMax
     print("\n")
 
 
