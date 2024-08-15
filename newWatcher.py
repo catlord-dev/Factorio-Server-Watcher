@@ -129,7 +129,7 @@ def makeLookup(serversConfig: dict):
                 if fil in filterLookup[tag]:
                     filterLookup[tag][fil].append(s)
                 else:
-                    filterLookup[tag][fil] = set(s)
+                    filterLookup[tag][fil] = set([s])
     return filterLookup
 
 
@@ -143,9 +143,11 @@ async def filterGames(bot: Client, games: list):
 
     if filters["changed"]:
         filters = getFilters(serversConfig)
+        bot.filters = filters
 
     if filterLookup["changed"]:
         filterLookup = makeLookup(serversConfig)
+        bot.filterLookup = filterLookup
 
     # sort games by game_id
     games.sort(key=lambda x: x["game_id"], reverse=True)
@@ -178,6 +180,9 @@ async def filterGames(bot: Client, games: list):
     for gameID in watchedServers.copy():
         if gameID not in keys:
             closedGames.append(closeServer(bot, gameID, watchedServers))
+        else:
+            #update server data
+            watchedServers[gameID].update(gamesByID[gameID])
 
     await asyncio.gather(*closedGames)
     print(f"Closed {len(closedGames)} servers")
@@ -206,6 +211,7 @@ def formatTime(time: int):
 
 
 def formatMessage(msg: str, server: dict):
+    # print(type(msg),type(server))
     msg = msg.replace("{gameId}", str(server["game_id"]))
     msg = msg.replace("{name}", server["name"])
     msg = msg.replace("{description}", server["description"])
@@ -234,14 +240,62 @@ async def closeServer(bot: Client, gameID: int, watchedServers: dict):
     watchedServers.pop(gameID)
 
 
-async def openServer(bot: Client, server: int, filters: dict):
+async def openServer(bot: Client, server: dict, filters: dict):
     # print(time.time())
+    filterLookup = bot.filterLookup
+    guilds = []
+    # print(filterLookup)
+    for filterType in ["tags", "name", "description"]:
+        for filter in filters[filterType]:
+            # print(filterLookup[filterType])
+            guilds.extend(filterLookup[filterType][filter])
+    alerts = []
+    for guildId in guilds:
+        alerts.append(sendAlert(bot,guildId,server,openAlert=True))
+        
+        # print(guild,type(guild))
+    # print(servers)
+    await asyncio.gather(*alerts)
     print(
         formatMessage(
             "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
             server,
         )
     )
+
+async def sendAlert(bot: Client, guildId: int,server: dict,openAlert=True):
+    guildConfig = bot.serversConfig[guildId]
+    title = ""
+    msg = ""
+    color = ""
+    embed = guildConfig["embed"]
+    if embed:
+        if openAlert:
+            title = guildConfig["embed"]["open"]["title"]
+            msg = guildConfig["embed"]["open"]["description"]
+            color = guildConfig["embed"]["open"]["color"]
+        else:
+            title = guildConfig["embed"]["close"]["title"]
+            msg = guildConfig["embed"]["close"]["description"]
+            color = guildConfig["embed"]["close"]["color"]
+    else:
+        if openAlert:
+            msg = guildConfig["alert"]["open"]
+        else:
+            msg = guildConfig["alert"]["close"]
+    msg = formatMessage(msg, server)
+    title = formatMessage(title, server)
+    color = Color.from_hex(color)
+    alerts = []
+    for channelId in guildConfig["channels"]:
+        channel: GuildChannel  = bot.get_channel(int(channelId))
+        if embed:
+            alerts.append(channel.send(embed=Embed(title=title, description=msg, color=color)))
+        else:
+            alerts.append(channel.send(msg))
+    await asyncio.gather(*alerts)
+        
+        
 
 
 def filterString(string: str, filters: set | tuple):
