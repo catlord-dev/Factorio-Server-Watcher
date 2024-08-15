@@ -1,5 +1,6 @@
 import asyncio
 import json
+import sys
 import time
 from FactorioAPI.API.Internal.matchmaking import getGames
 from interactions import (
@@ -46,7 +47,9 @@ async def main(bot: Client):
     while True:
         print("Getting games")
         games = getGames(factorioUsername, factorioToken)
+        start = time.time()
         await filterGames(bot, games)
+        
         await asyncio.sleep(60)
 
 
@@ -118,6 +121,7 @@ def makeLookup(serversConfig: dict):
              The "changed" field indicates whether the lookup information has changed since the last time it was generated. This is used to tell whether this lookup table should be remade
              idealy, any changes to filters should also change this so it is correct since remaking it could be costly in performance if there is a lot of filters and/or discord servers
     """
+    
     filterLookup = {"tags": {}, "name": {}, "description": {}, "changed": False}
 
     for s, config in serversConfig.items():
@@ -135,23 +139,30 @@ def makeLookup(serversConfig: dict):
 
 async def filterGames(bot: Client, games: list):
     # print(time.time())
+    def timeIt(msg,tim):
+        print(f"{msg:<30}: {(time.time()-tim)*1000:.3f} ms")
+        return time.time()
+    tim = time.time()
+    start = tim
+    awaitedTime = 0
     global lastCheckedID, lowestID
     serversConfig: dict = bot.serversConfig
     watchedServers: dict = bot.watchedServers
     filterLookup: dict = bot.filterLookup
     filters: dict = bot.filters
-
+    tim = timeIt("Init",tim)
     if filters["changed"]:
         filters = getFilters(serversConfig)
         bot.filters = filters
-
+    tim = timeIt("Filter Set Got",tim)
     if filterLookup["changed"]:
         filterLookup = makeLookup(serversConfig)
         bot.filterLookup = filterLookup
-
+        print("Filter Lookup Changed")
+    tim = timeIt("FilterLookup Done",tim)
     # sort games by game_id
     games.sort(key=lambda x: x["game_id"], reverse=True)
-
+    tim = timeIt("sort games by id",tim)
     # game ids are ints, not str ints
     # get the lowest and highest game_id
     curMin = games[0]["game_id"]
@@ -164,7 +175,7 @@ async def filterGames(bot: Client, games: list):
 
     # make a dict of the current servers with the game_id as the key
     gamesByID = {game["game_id"]: game for game in games}
-
+    tim = timeIt("Id lookup Done",tim)
     # get a list of all the game_ids that is sorted
     keys = list(gamesByID.keys())
 
@@ -176,33 +187,68 @@ async def filterGames(bot: Client, games: list):
     # print(filters)
     # check current servers against watched servers, close servers that are not in the list
     closedGames = []
-
+    tim = timeIt("Before Close Check",tim)
     for gameID in watchedServers.copy():
         if gameID not in keys:
             closedGames.append(closeServer(bot, gameID, watchedServers))
         else:
-            #update server data
+            # update server data
             watchedServers[gameID].update(gamesByID[gameID])
-
+    tim = timeIt("After Close Check",tim)
     await asyncio.gather(*closedGames)
+    awaitedTime += time.time() - tim
+    tim = time.time()
     print(f"Closed {len(closedGames)} servers")
 
     openedGames = []
 
+    tim = timeIt("Before Open Check",tim)
+    filterTime = 0 
     # check new servers based on the last highest id
+    stringMem = 0
+    stringCnt = 0
+    filterMem = 0 
+    filterCnt = 0
+    for typ in ["tags", "name", "description"]:
+        for filter in filters[typ]:
+            filterMem+= sys.getsizeof(filter)
+            filterCnt+=1
+        
     for gameID in keys[keys.index(lastCheckedID) :]:
         server = gamesByID.get(gameID, None)
         if server is None:
             continue
         if gameID in watchedServers:
             continue
+        filterStart = time.time()
+        # for typ in ["tags", "name", "description"]:
+        #     if typ == "tags":
+        #         for tag in server.get("tags",[]):
+        #             stringMem+= sys.getsizeof(tag)
+        #             stringCnt+=1
+        #     else:
+        #         stringMem+= sys.getsizeof(server[typ])
+        #         stringCnt+=1
+        
         filtersHit = checkFilters(server, filters)
+        filterTime+= time.time() - filterStart
         if filtersHit["hit"]:
             watchedServers[gameID] = server
             openedGames.append(openServer(bot, server, filtersHit))
-
+    timeIt("Filter Check",time.time()-filterTime)
+    tim = timeIt("After Open Check",tim)
+    
     await asyncio.gather(*openedGames)
+    awaitedTime += time.time() - tim
+    tim = time.time()
     print(f"Opened {len(openedGames)} servers")
+    # print(f"There are {stringCnt} strings from servers that take up {stringMem} bytes")
+    # print(f"There are {filterCnt} filters that take up {filterMem} bytes")
+    tim = timeIt("Total",start+awaitedTime)
+    timeIt("Awaited Time",tim+awaitedTime)
+    
+    print("\n")
+
 
 def formatTime(time: int):
     hours = time // 60
@@ -231,12 +277,83 @@ def formatMessage(msg: str, server: dict):
 
 
 async def closeServer(bot: Client, gameID: int, watchedServers: dict):
-    print(
-        formatMessage(
-            "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
-            watchedServers[gameID],
+    print(watchedServers[gameID].get("Guilds", "nothing, oof"))
+    filterLookup = bot.filterLookup
+    guilds = watchedServers[gameID]["Guilds"]
+    # print(filterLookup)
+    stuffToAwait = []
+    for guildId in guilds:
+        serverConfig = bot.serversConfig[guildId]
+        closeAlertType = serverConfig["closeAlert"]
+        # nothing, edit, delete, closeAlert
+        closeMsg = ""
+        closeTitle = ""
+        closeColor = ""
+        embed = serverConfig["embed"]["useEmbed"]
+
+        if embed:
+            closeTitle = serverConfig["embed"]["close"]["title"]
+            closeMsg = serverConfig["embed"]["close"]["description"]
+            closeColor = serverConfig["embed"]["close"]["color"]
+        else:
+            closeMsg = serverConfig["alert"]["close"]
+        closeMsg = formatMessage(closeMsg, watchedServers[gameID])
+        closeTitle = formatMessage(closeTitle, watchedServers[gameID])
+        closeEmbed = Embed(
+            title=closeTitle, description=closeMsg, color=Color.from_hex(closeColor)
         )
-    )
+        match closeAlertType:
+            case "nothing":
+                continue
+            case "edit":
+
+                for channelId in guilds[guildId]:
+                    Alertmessage: Message = guilds[guildId][channelId]
+                    if embed:
+                        stuffToAwait.append(
+                            Alertmessage.edit(
+                                embed=Embed(
+                                    title=closeTitle,
+                                    description=closeMsg,
+                                    color=Color.from_hex(closeColor),
+                                )
+                            )
+                        )
+                    else:
+                        stuffToAwait.append(Alertmessage.edit(content=closeMsg))
+
+            case "delete":
+                for channelId in guilds[guildId]:
+                    Alertmessage: Message = guilds[guildId][channelId]
+                    stuffToAwait.append(Alertmessage.delete())
+            case "closeAlert":
+                for channelId in guilds[guildId]:
+                    Alertmessage: Message = guilds[guildId][channelId]
+                    channel = Alertmessage.channel
+                    if embed:
+                        stuffToAwait.append(channel.send(embed=closeEmbed))
+                    else:
+                        stuffToAwait.append(channel.send(content=closeMsg))
+            case "closeAlertReply":
+                for channelId in guilds[guildId]:
+                    Alertmessage: Message = guilds[guildId][channelId]
+                    channel = Alertmessage.channel
+                    if embed:
+                        stuffToAwait.append(Alertmessage.reply(embed=closeEmbed))
+
+                    else:
+                        stuffToAwait.append(Alertmessage.reply(content=closeMsg))
+            case _:
+                pass
+    start = time.time()
+    await asyncio.gather(*stuffToAwait)
+    print(f"Await close stuff takes {time.time() - start:.5f} seconds" )
+    # print(
+    #     formatMessage(
+    #         "```\n*** Server Closed ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
+    #         watchedServers[gameID],
+    #     )
+    # )
     watchedServers.pop(gameID)
 
 
@@ -251,19 +368,25 @@ async def openServer(bot: Client, server: dict, filters: dict):
             guilds.extend(filterLookup[filterType][filter])
     alerts = []
     for guildId in guilds:
-        alerts.append(sendAlert(bot,guildId,server,openAlert=True))
-        
-        # print(guild,type(guild))
-    # print(servers)
-    await asyncio.gather(*alerts)
-    print(
-        formatMessage(
-            "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
-            server,
-        )
-    )
+        alerts.append(sendAlert(bot, guildId, server, openAlert=True))
+    start = time.time()
+    messageLookups: list = await asyncio.gather(*alerts)
+    print(f"Await open stuff takes {time.time() - start:.5f} seconds" )
+    guildLookup = dict()
+    for i in range(len(messageLookups)):
+        guildLookup[guilds[i]] = messageLookups[i]
 
-async def sendAlert(bot: Client, guildId: int,server: dict,openAlert=True):
+    server["Guilds"] = guildLookup
+
+    # print(
+    #     formatMessage(
+    #         "```\n*** Server Opened ***\nGame ID: {gameId}\nName: {name}\nDescription: {description}\nPassword: {hasPassword}\nPlaytime: {playtime}\nMods: {modCount}\nPlayers: {playerCount}\nTags: {tags}\n```",
+    #         server,
+    #     )
+    # )
+
+
+async def sendAlert(bot: Client, guildId: int, server: dict, openAlert=True):
     guildConfig = bot.serversConfig[guildId]
     title = ""
     msg = ""
@@ -288,17 +411,21 @@ async def sendAlert(bot: Client, guildId: int,server: dict,openAlert=True):
     color = Color.from_hex(color)
     alerts = []
     for channelId in guildConfig["channels"]:
-        channel: GuildChannel  = bot.get_channel(int(channelId))
+        channel: GuildChannel = bot.get_channel(int(channelId))
         if embed:
-            alerts.append(channel.send(embed=Embed(title=title, description=msg, color=color)))
+            alerts.append(
+                channel.send(embed=Embed(title=title, description=msg, color=color))
+            )
         else:
             alerts.append(channel.send(msg))
-    await asyncio.gather(*alerts)
-        
-        
+    messages = await asyncio.gather(*alerts)
+    messageLookup = dict()
+    for i in range(len(messages)):
+        messageLookup[guildConfig["channels"][i]] = messages[i]
+    return messageLookup
 
 
-def filterString(string: str, filters: set | tuple):
+def filterString(string: str, filters: set | tuple,earlyExit=False):
     """filters strings based on the following rules
     for each filter in the filters
         if the filter is in the string, then it saves the filter
@@ -307,7 +434,8 @@ def filterString(string: str, filters: set | tuple):
 
     Args:
         string (str): the string to put filters against
-        filters (dict): the filters to test against the string, should be a set or tuple, other iterables may work but better to use set and tuple
+        filters (dict): the filters to test 
+        against the string, should be a set or tuple, other iterables may work but better to use set and tuple
     """
     # print(f"{string} - {filters}")
     hitFilters = set()
@@ -315,22 +443,27 @@ def filterString(string: str, filters: set | tuple):
     for filter in filters:
         # if the filter is a sub filter , represented as a tupe rather than list so it is hashable
         if isinstance(filter, tuple):
-            hits = filterString(string, filter)
+            hits = filterString(string, filter,earlyExit=True)
             # unlike normal filters, sub filters use AND logic rather than OR, so all filters in the sub filter have be hit for the sub filter to be considered hit
             if len(hits) == len(filter):
                 hitFilters.add(filter)
                 continue
-        negate = False
+        noHit = True
+        
         # if the filter starts with ! then negate the filter
-        if string[0:1] == "!":
-            negate = True
-            string = string[1:]
-        if filter in string or filter == string:
+        negate = filter.startswith("!")
+        if negate:
+            filter = filter[1:]
+        if len(filter) <= len(string) and (filter in string or filter == string):
             if negate == False:
                 # print("TRUE")
                 hitFilters.add(filter)
+                noHit = False
         elif negate == True:
             hitFilters.add(filter)
+            noHit = False
+        if earlyExit and noHit:
+            return hitFilters
     return hitFilters
 
 
