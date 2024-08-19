@@ -181,10 +181,11 @@ def validateServersConfig(config: dict):
 
 def processServerConfig(config: dict, serverId: str):
     filters = ["tags", "name", "description"]
+    
     for filter in filters:
         config[serverId]["filters"][filter] = set(
             [
-                tuple(x) if isinstance(x, list) else x
+                tuple([xx.lower() for xx in x]) if isinstance(x, list) else x.lower()
                 for x in config[serverId]["filters"][filter]
             ]
         )
@@ -195,7 +196,28 @@ def processServersConfig(config: dict):
         if serverId == "comments":
             continue
         processServerConfig(config, serverId)
+        
+def updateValue(path:str,config:dict,perServerConfig:dict):
+    """can only handle 1 path, no nesting
 
+    Args:
+        path (str): _description_
+        config (dict): _description_
+        perServerConfig (dict): _description_
+    """
+    config[path] = config.get(path, perServerConfig[path])
+
+def updateServerConfig(config: dict, serverId: str,perServerConfig: dict):
+    
+    updateValue("showPassworded", config, perServerConfig)
+    
+    pass
+
+def updateServersConfig(config: dict, perServerConfig: dict):
+    for serverId in config.keys():
+        if serverId == "comments":
+            continue
+        updateServerConfig(config[serverId], serverId, perServerConfig)
 
 def main():
     global botConfigHandle, serversConfigHandle, perServerConfig
@@ -213,6 +235,7 @@ def main():
     if not os.path.exists(botConfigPath):
         shutil.copyfile("./default/config.json", botConfigPath)
 
+    os.makedirs("./data", exist_ok=True)
     if not os.path.exists(serversConfigPath):
         shutil.copyfile("./default/servers.json", serversConfigPath)
 
@@ -221,28 +244,37 @@ def main():
 
     with open(serversConfigPath, "rb") as f:
         serversConfig = orjson.loads(f.read())
-
+        
+    botConfigHandle = open(botConfigPath, "ab")
+    serversConfigHandle = open(serversConfigPath, "ab")
+    perServerConfig = orjson.loads(open(perServerConfigPath, "rb").read())
+    
+    updateServersConfig(serversConfig,perServerConfig)
+    flushFile(serversConfigHandle,serversConfig)
+    
     validateBotConfig(botConfig)
     validateServersConfig(serversConfig)
 
     processServersConfig(serversConfig)
 
-    botConfigHandle = open(botConfigPath, "ab")
-    serversConfigHandle = open(serversConfigPath, "ab")
-    perServerConfig = orjson.loads(open(perServerConfigPath, "rb").read())
+    
+    
+    
 
     return botConfig, serversConfig
 
+def flushFile(file:BytesIO,jsonData:dict):
+    file.seek(0)
+    file.truncate(0)
+    file.write(orjson.dumps(jsonData,option=orjson.OPT_INDENT_2))
+    file.flush()
 
 def addServer(serversConfig: dict, serverId: str, serverName: str):
     global serversConfigHandle, perServerConfig
     serversConfig[serverId] = perServerConfig.copy()
     serversConfig[serverId]["serverId"] = serverId
     serversConfig[serverId]["serverName"] = serverName
-    serversConfigHandle.seek(0)
-    serversConfigHandle.truncate(0)
-    serversConfigHandle.write(orjson.dumps(serversConfig,option=orjson.OPT_INDENT_2))
-    serversConfigHandle.flush()
+    flushFile(serversConfigHandle,serversConfig)
 
 
 if __name__ == "__main__":

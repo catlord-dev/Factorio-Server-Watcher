@@ -21,4 +21,5 @@ class Events(Extension):
             print("Startup GuildJoin events, guild :",ctx.guild.name)
             addServer(bot,ctx.guild)
             return
-        # print()
+        # print("Added Server/Guild : ",ctx.guild.name)
+        addServer(bot,ctx.guild)

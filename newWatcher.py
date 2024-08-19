@@ -1,5 +1,6 @@
 import asyncio
 import json
+from operator import itemgetter
 import sys
 import time
 from FactorioAPI.API.Internal.matchmaking import getGames
@@ -76,6 +77,7 @@ def getFilters(serversConfig: dict, filterType: str = "all"):
                 if s == "comments":
                     continue
                 filter: list = serversConfig[s]["filters"][tag]
+                
                 filters[tag].update(filter)
         return filters
     else:
@@ -131,7 +133,7 @@ def makeLookup(serversConfig: dict):
         for tag in ["tags", "name", "description"]:
             for fil in filters[tag]:
                 if fil in filterLookup[tag]:
-                    filterLookup[tag][fil].append(s)
+                    filterLookup[tag][fil].add(s)
                 else:
                     filterLookup[tag][fil] = set([s])
     return filterLookup
@@ -161,7 +163,7 @@ async def filterGames(bot: Client, games: list):
         print("Filter Lookup Changed")
     tim = timeIt("FilterLookup Done",tim)
     # sort games by game_id
-    games.sort(key=lambda x: x["game_id"], reverse=True)
+    games.sort(key=itemgetter("game_id"), reverse=True)
     tim = timeIt("sort games by id",tim)
     # game ids are ints, not str ints
     # get the lowest and highest game_id
@@ -249,8 +251,8 @@ async def filterGames(bot: Client, games: list):
     print(f"There are {stringCnt} strings from servers that take up {stringMem} bytes")
     print(f"There are {filterCnt} filters that take up {filterMem} bytes")
     print(f"This would take up {(stringCnt*filterMem+stringMem)/1000:.2f} kilobytes on cache")
-    tim = timeIt("Total",start+awaitedTime)
-    timeIt("Awaited Time",tim+awaitedTime)
+    timeIt("Total",start+awaitedTime)
+    timeIt("Awaited Time",time.time()-awaitedTime)
     lastCheckedID = curMax
     print("\n")
 
@@ -373,6 +375,8 @@ async def openServer(bot: Client, server: dict, filters: dict):
             guilds.extend(filterLookup[filterType][filter])
     alerts = []
     for guildId in guilds:
+        if not bot.serversConfig[guildId]["showPassworded"]:
+            continue
         alerts.append(sendAlert(bot, guildId, server, openAlert=True))
     start = time.time()
     messageLookups: list = await asyncio.gather(*alerts)
@@ -482,11 +486,13 @@ def checkFilters(server: dict, filters: dict):
             continue
         if filterType == "tags":
             for tag in server["tags"]:
-                hitfilts = filterString(tag, filters[filterType])
+                hitfilts = filterString(tag.lower(), filters[filterType])
                 hitFilters["tags"].update(hitfilts)
         else:
+            # if "hivemind" in server[filterType].lower():
+            #     meow = "meow"
             hitFilters[filterType] = filterString(
-                server[filterType], filters[filterType]
+                server[filterType].lower(), filters[filterType]
             )
         if len(hitFilters[filterType]) > 0:
             hitFilters["hit"] = True
