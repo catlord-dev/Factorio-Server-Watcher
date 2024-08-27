@@ -365,6 +365,7 @@ async def closeServer(bot: Client, gameID: int, watchedServers: dict):
 
 
 async def openServer(bot: Client, server: dict, filters: dict):
+    print(f"Opening server : {server['name']}")
     # print(time.time())
     filterLookup = bot.filterLookup
     guilds = []
@@ -373,11 +374,14 @@ async def openServer(bot: Client, server: dict, filters: dict):
         for filter in filters[filterType]:
             # print(filterLookup[filterType])
             guilds.extend(filterLookup[filterType][filter])
+    guilds = list(set(guilds))
     alerts = []
     for guildId in guilds:
-        if not bot.serversConfig[guildId]["showPassworded"]:
+        # print(guildId,type(guildId))
+        if not bot.serversConfig[guildId]["showPassworded"] and server["has_password"]:
             continue
         alerts.append(sendAlert(bot, guildId, server, openAlert=True))
+        # print("SENT ALERT")
     start = time.time()
     messageLookups: list = await asyncio.gather(*alerts)
     print(f"Await open stuff takes {time.time() - start:.5f} seconds" )
@@ -396,6 +400,7 @@ async def openServer(bot: Client, server: dict, filters: dict):
 
 
 async def sendAlert(bot: Client, guildId: int, server: dict, openAlert=True):
+    print("SENDING ALERT FOR SERVER (",guildId,"): ", server["name"])
     guildConfig = bot.serversConfig[guildId]
     title = ""
     msg = ""
@@ -418,7 +423,7 @@ async def sendAlert(bot: Client, guildId: int, server: dict, openAlert=True):
     msg = formatMessage(msg, server)
     title = formatMessage(title, server)
     color = Color.from_hex(color)
-    alerts = []
+    alerts: list[Message] = []
     for channelId in guildConfig["channels"]:
         channel: GuildChannel = bot.get_channel(int(channelId))
         if embed:
