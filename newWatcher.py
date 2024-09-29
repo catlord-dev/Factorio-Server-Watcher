@@ -20,6 +20,8 @@ from interactions import (
     listen,
 )
 from interactions.api.events import Component, Startup
+import orjson
+import compiledFilter
 
 lastCheckedID = 0
 lowestID = 2**64
@@ -163,7 +165,7 @@ async def filterGames(bot: Client, games: list):
         print("Filter Lookup Changed")
     tim = timeIt("FilterLookup Done",tim)
     # sort games by game_id
-    games.sort(key=itemgetter("game_id"), reverse=True)
+    games.sort(key=itemgetter("game_id"))
     tim = timeIt("sort games by id",tim)
     # game ids are ints, not str ints
     # get the lowest and highest game_id
@@ -220,6 +222,9 @@ async def filterGames(bot: Client, games: list):
     print(keys.index(lastCheckedID))
     print(len(keys[keys.index(lastCheckedID) :]))
     print(lastCheckedID)
+    print(curMax)
+    # with open("checkedServers.json","wb") as f:
+    #     f.write(orjson.dumps([gamesByID.get(gameID, dict()) for gameID in keys[keys.index(lastCheckedID) :]],option=orjson.OPT_INDENT_2))
     for gameID in keys[keys.index(lastCheckedID) :]:
         server = gamesByID.get(gameID, None)
         if server is None:
@@ -439,46 +444,47 @@ async def sendAlert(bot: Client, guildId: int, server: dict, openAlert=True):
     return messageLookup
 
 
-def filterString(string: str, filters: set | tuple,earlyExit=False):
-    """filters strings based on the following rules
-    for each filter in the filters
-        if the filter is in the string, then it saves the filter
+# a compiled version of this can be found in compiledFilter.pyx, this was done beacuse of performance, since i want this to scale well, i decided that this part should be compiled using cython
 
-    if the filter starts with ! then it negates the filter and does the opposite, where if the filter isn't in the string, then it saves the filter
+# def checkWord(string:str,filter:str):
+#     negate = filter.startswith("!")
+#     if negate:
+#         filter = filter[1:]
+#     match = filter in string
+#     return match != negate
 
-    Args:
-        string (str): the string to put filters against
-        filters (dict): the filters to test 
-        against the string, should be a set or tuple, other iterables may work but better to use set and tuple
-    """
-    # print(f"{string} - {filters}")
-    hitFilters = set()
-    # go through all filters
-    for filter in filters:
-        # if the filter is a sub filter , represented as a tupe rather than list so it is hashable
-        if isinstance(filter, tuple):
-            hits = filterString(string, filter,earlyExit=True)
-            # unlike normal filters, sub filters use AND logic rather than OR, so all filters in the sub filter have be hit for the sub filter to be considered hit
-            if len(hits) == len(filter):
-                hitFilters.add(filter)
-                continue
-        noHit = True
-        
-        # if the filter starts with ! then negate the filter
-        negate = filter.startswith("!")
-        if negate:
-            filter = filter[1:]
-        if len(filter) <= len(string) and (filter in string or filter == string):
-            if negate == False:
-                # print("TRUE")
-                hitFilters.add(filter)
-                noHit = False
-        elif negate == True:
-            hitFilters.add(filter)
-            noHit = False
-        if earlyExit and noHit:
-            return hitFilters
-    return hitFilters
+# def filterString(string: str, filters: set | tuple,earlyExit=False):
+#     """filters strings based on the following rules
+#     for each filter in the filters
+#         if the filter is in the string, then it saves the filter
+
+#     if the filter starts with ! then it negates the filter and does the opposite, where if the filter isn't in the string, then it saves the filter
+
+#     Args:
+#         string (str): the string to put filters against
+#         filters (dict): the filters to test 
+#         against the string, should be a set or tuple, other iterables may work but better to use set and tuple
+#     """
+#     # print(f"{string} - {filters}")
+#     hitFilters = set()
+#     # go through all filters
+#     for filter in filters:
+#         # if the filter is a sub filter , represented as a tupe rather than list so it is hashable
+#         if isinstance(filter, tuple):
+#             hits = filterString(string, filter,earlyExit=True)
+#             # unlike normal filters, sub filters use AND logic rather than OR, so all filters in the sub filter have be hit for the sub filter to be considered hit
+#             if len(hits) == len(filter):
+#                 hitFilters.add(filter)
+#                 continue
+#         noHit = True
+#         # if the filter starts with ! then negate the filter
+#         match = checkWord(string,filter)
+#         if match:
+#             hitFilters.add(filter)
+#             noHit = False
+#         if earlyExit and noHit:
+#             return hitFilters
+#     return hitFilters
 
 
 def checkFilters(server: dict, filters: dict):
@@ -491,12 +497,12 @@ def checkFilters(server: dict, filters: dict):
             continue
         if filterType == "tags":
             for tag in server["tags"]:
-                hitfilts = filterString(tag.lower(), filters[filterType])
+                hitfilts = compiledFilter.filterString(tag.lower(), filters[filterType])
                 hitFilters["tags"].update(hitfilts)
         else:
             # if "hivemind" in server[filterType].lower():
             #     meow = "meow"
-            hitFilters[filterType] = filterString(
+            hitFilters[filterType] = compiledFilter.filterString(
                 server[filterType].lower(), filters[filterType]
             )
         if len(hitFilters[filterType]) > 0:

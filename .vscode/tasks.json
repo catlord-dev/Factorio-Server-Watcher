@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Cythonize",
+            "type": "shell",
+            "command": "cythonize",
+            "args": ["-i","${file}"],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },{
+            "label": "run cythonized file",
+            "type": "shell",
+            "command": "python",
+            "args": ["-c","import ${fileBasenameNoExtension}"],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "Cythonize"
+        }
+    ]
+}

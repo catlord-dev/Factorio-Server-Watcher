@@ -170,3 +170,5 @@ servers.json
 testing.py.lprof
 testingServers.ipynb
 devTesting/*
+debug.py
+checkedServers.json

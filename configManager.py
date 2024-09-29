@@ -127,6 +127,8 @@ def validateServerConfig(config, name):
     validatePath(config, "filters.description", list, prefix=prefix)
 
     validatePath(config, "channels", list, prefix=prefix)
+    
+    validatePath(config, "showPassworded", bool, prefix=prefix)
 
     # now for data validation
     # buttons color has to be between and including 1 and 4
